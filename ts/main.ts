@@ -17,17 +17,43 @@ interface Block {
 
 const blocks: Block[] = [];
 
-function genesisBlock(): void {
-    const newBlock: Block = {
-        index: blocks.length + 1,
-        data: info,
-        hash: "123",
-        previousHash: "000",
-    };
-
-    blocks.push(newBlock);
+const calculateHash = async (index: number, data: string, previousHash: string): Promise<string> => {
+    const forHash = `${index}${data}${previousHash}`;
+    return await sha256Hex(forHash);
+};
+  
+async function genesisBlock(): Promise<void> {
+    const index = 1;
+    const previousHash = "000";
+    const hash = await calculateHash(index, info, previousHash);
+  
+    blocks.push({
+      index,
+      data: info,
+      hash,
+      previousHash,
+    });
 }
 
-genesisBlock();
+async function addBlock(): Promise<void> {
+    const previousBlock = blocks[blocks.length - 1];
+    const index = blocks.length + 1;
+    const hash = await calculateHash(index, info, previousBlock.hash);
+  
+    blocks.push({
+      index,
+      info,
+      hash,
+      previousHash: previousBlock.hash,
+    });
+}
 
-console.log(blocks);
+async function run(): Promise<void> {
+    await genesisBlock();
+    await addBlock();
+    await addBlock();
+    await addBlock();
+    console.log(blocks);
+}
+  
+run();
