@@ -42,17 +42,54 @@ async function addBlock(): Promise<void> {
   
     blocks.push({
       index,
-      info,
+      data: info,
       hash,
       previousHash: previousBlock.hash,
     });
 }
 
+const addBtn = document.getElementById("add-btn");
+
+addBtn?.addEventListener("click", async () => {
+    await addBlock();
+    console.table(blocks);
+});
+
+async function isChainValid(): Promise<boolean> {
+    for (let i = 0; i < blocks.length; i++) {
+      const current = blocks[i];
+  
+      // Проверка 1: содержимое не менялось
+      const recalculated = await calculateHash(current.index, current.data, current.previousHash);
+      if (current.hash !== recalculated) {
+        console.log("Блок " + i + " изменён: хеш не совпадает с содержимым");
+        return false;
+      }
+  
+      // Проверка 2: связь с предыдущим блоком (у генезиса предыдущего нет)
+      if (i > 0 && current.previousHash !== blocks[i - 1].hash) {
+        console.log("Цепочка порвана между блоками " + (i - 1) + " и " + i);
+        return false;
+      }
+    }
+  
+    return true;
+}
+
+let lastState: boolean | null = null;
+
+async function monitorChain(): Promise<void> {
+  const ok = await isChainValid();
+  if (ok !== lastState) {
+    console.log(ok ? "Цепочка целая" : "Цепочка нарушена!");
+    lastState = ok;
+  }
+  setTimeout(monitorChain, 2000);
+}
+
 async function run(): Promise<void> {
     await genesisBlock();
-    await addBlock();
-    await addBlock();
-    await addBlock();
+    monitorChain();
     console.log(blocks);
 }
   
